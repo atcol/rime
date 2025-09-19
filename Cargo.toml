@@ -1,0 +1,16 @@
+[workspace]
+members = ["rime-lib", "rime-cli"]
+resolver = "2"
+
+[workspace.dependencies]
+iceberg = "0.6"
+iceberg-catalog-glue = "0.6"
+iceberg-catalog-rest = "0.6"
+tokio = { version = "1.0", features = ["full"] }
+clap = { version = "4.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+async-trait = "0.1"
