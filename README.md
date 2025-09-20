@@ -12,9 +12,21 @@ Rime is a Rust-based library and CLI tool for analyzing Apache Iceberg tables, p
 
 ## Installation
 
+### From Source
 ```bash
 cargo install --path rime-cli
 ```
+
+### Pre-built Binaries
+Download the latest binary for your platform from the [GitHub Releases](https://github.com/atcol/rime/releases) page:
+
+- **Linux (x86_64)**: `rime-linux-x86_64`
+- **macOS (Intel)**: `rime-macos-x86_64`
+- **macOS (Apple Silicon)**: `rime-macos-aarch64`
+- **Windows**: `rime-windows-x86_64.exe`
+
+### Development Builds
+Development builds are available as artifacts from the [GitHub Actions](https://github.com/atcol/rime/actions) page for the latest commits.
 
 ## Quick Start
 
