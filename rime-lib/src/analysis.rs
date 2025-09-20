@@ -1,5 +1,5 @@
 use crate::RimeError;
-use iceberg::{Catalog, table::Table};
+use iceberg::{table::Table, Catalog};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -75,21 +75,21 @@ impl TableAnalyser {
 
     pub async fn list_namespaces(&self) -> Result<Vec<String>, RimeError> {
         tracing::debug!("Calling catalog.list_namespaces(None)");
-        let namespaces = self.catalog.list_namespaces(None).await
-            .map_err(|e| {
-                tracing::error!("Catalog list_namespaces failed: {:?}", e);
-                e
-            })?;
-        
+        let namespaces = self.catalog.list_namespaces(None).await.map_err(|e| {
+            tracing::error!("Catalog list_namespaces failed: {:?}", e);
+            e
+        })?;
+
         tracing::debug!("Raw namespaces from catalog: {:?}", namespaces);
-        let result: Vec<String> = namespaces.into_iter()
+        let result: Vec<String> = namespaces
+            .into_iter()
             .map(|ns| {
                 let joined = ns.as_ref().join(".");
                 tracing::debug!("Namespace: {:?} -> {}", ns.as_ref(), joined);
                 joined
             })
             .collect();
-        
+
         tracing::info!("Converted {} namespaces to strings", result.len());
         Ok(result)
     }
@@ -104,21 +104,28 @@ impl TableAnalyser {
         let metadata = table.metadata();
         let current_snapshot = metadata.current_snapshot();
 
-        let (total_files, total_size_bytes, total_records) = if let Some(snapshot) = current_snapshot {
-            let summary = snapshot.summary();
-            let total_files = summary.additional_properties.get("total-data-files")
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(0);
-            let total_size = summary.additional_properties.get("total-size")
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(0);
-            let total_records = summary.additional_properties.get("total-records")
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(0);
-            (total_files, total_size, total_records)
-        } else {
-            (0, 0, 0)
-        };
+        let (total_files, total_size_bytes, total_records) =
+            if let Some(snapshot) = current_snapshot {
+                let summary = snapshot.summary();
+                let total_files = summary
+                    .additional_properties
+                    .get("total-data-files")
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0);
+                let total_size = summary
+                    .additional_properties
+                    .get("total-size")
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0);
+                let total_records = summary
+                    .additional_properties
+                    .get("total-records")
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0);
+                (total_files, total_size, total_records)
+            } else {
+                (0, 0, 0)
+            };
 
         let snapshot_count = metadata.snapshots().len();
         let partition_count = metadata.default_partition_spec().fields().len();
@@ -141,10 +148,14 @@ impl TableAnalyser {
 
         if let Some(snapshot) = metadata.current_snapshot() {
             let summary = snapshot.summary();
-            let total_files: usize = summary.additional_properties.get("total-data-files")
+            let total_files: usize = summary
+                .additional_properties
+                .get("total-data-files")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
-            let total_size: u64 = summary.additional_properties.get("total-size")
+            let total_size: u64 = summary
+                .additional_properties
+                .get("total-size")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
 
@@ -152,19 +163,22 @@ impl TableAnalyser {
                 let avg_file_size = total_size / total_files as u64;
                 if avg_file_size < small_files_threshold {
                     small_files_count = total_files / 2; // Estimate
-                    recommendations.push("Consider running compaction to merge small files".to_string());
+                    recommendations
+                        .push("Consider running compaction to merge small files".to_string());
                 }
             }
 
             if total_files > 1000 {
-                recommendations.push("High number of files detected, compaction recommended".to_string());
+                recommendations
+                    .push("High number of files detected, compaction recommended".to_string());
             }
         }
 
         let needs_compaction = small_files_count > 10 || !recommendations.is_empty();
 
         if metadata.snapshots().len() > 100 {
-            recommendations.push("Consider running expire_snapshots to clean old snapshots".to_string());
+            recommendations
+                .push("Consider running expire_snapshots to clean old snapshots".to_string());
         }
 
         Ok(MaintenanceInfo {
@@ -178,16 +192,20 @@ impl TableAnalyser {
 
     async fn analyse_performance(&self, table: &Table) -> Result<PerformanceInfo, RimeError> {
         let metadata = table.metadata();
-        
+
         let avg_file_size_mb = if let Some(snapshot) = metadata.current_snapshot() {
             let summary = snapshot.summary();
-            let total_files: usize = summary.additional_properties.get("total-data-files")
+            let total_files: usize = summary
+                .additional_properties
+                .get("total-data-files")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(1);
-            let total_size: u64 = summary.additional_properties.get("total-size")
+            let total_size: u64 = summary
+                .additional_properties
+                .get("total-size")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
-            
+
             (total_size as f64 / total_files as f64) / (1024.0 * 1024.0)
         } else {
             0.0
@@ -217,7 +235,7 @@ impl TableAnalyser {
             scan_efficiency_score,
             partition_pruning_effectiveness,
             query_patterns: HashMap::new(), // Would need query history
-            hot_partitions: Vec::new(), // Would need access patterns
+            hot_partitions: Vec::new(),     // Would need access patterns
         })
     }
 }

@@ -22,17 +22,25 @@ pub struct GlueCatalogProvider;
 impl CatalogProvider for GlueCatalogProvider {
     async fn create_catalog(&self, config: &CatalogConfig) -> Result<Arc<dyn Catalog>, RimeError> {
         match config {
-            CatalogConfig::Glue { region, warehouse, profile } => {
-                tracing::info!("Creating Glue catalog with region: {}, warehouse: {}", region, warehouse);
-                
-                let config_builder = iceberg_catalog_glue::GlueCatalogConfig::builder()
-                    .warehouse(warehouse.clone());
+            CatalogConfig::Glue {
+                region,
+                warehouse,
+                profile,
+            } => {
+                tracing::info!(
+                    "Creating Glue catalog with region: {}, warehouse: {}",
+                    region,
+                    warehouse
+                );
+
+                let config_builder =
+                    iceberg_catalog_glue::GlueCatalogConfig::builder().warehouse(warehouse.clone());
 
                 if let Some(profile) = profile {
                     tracing::info!("Setting AWS profile: {}", profile);
                     std::env::set_var("AWS_PROFILE", profile);
                 }
-                
+
                 tracing::info!("Setting AWS region: {}", region);
                 std::env::set_var("AWS_REGION", region);
 
@@ -45,11 +53,13 @@ impl CatalogProvider for GlueCatalogProvider {
                         tracing::error!("Failed to create Glue catalog: {:?}", e);
                         RimeError::Catalog(e)
                     })?;
-                
+
                 tracing::info!("Glue catalog created successfully");
                 Ok(Arc::new(catalog))
             }
-            _ => Err(RimeError::Config("Invalid catalog type for Glue provider".to_string())),
+            _ => Err(RimeError::Config(
+                "Invalid catalog type for Glue provider".to_string(),
+            )),
         }
     }
 
@@ -64,9 +74,18 @@ pub struct RestCatalogProvider;
 impl CatalogProvider for RestCatalogProvider {
     async fn create_catalog(&self, config: &CatalogConfig) -> Result<Arc<dyn Catalog>, RimeError> {
         match config {
-            CatalogConfig::Rest { uri, warehouse, credential, token } => {
-                tracing::info!("Creating REST catalog with URI: {}, warehouse: {}", uri, warehouse);
-                
+            CatalogConfig::Rest {
+                uri,
+                warehouse,
+                credential,
+                token,
+            } => {
+                tracing::info!(
+                    "Creating REST catalog with URI: {}, warehouse: {}",
+                    uri,
+                    warehouse
+                );
+
                 if credential.is_some() {
                     tracing::info!("Using credential authentication");
                 }
@@ -82,10 +101,12 @@ impl CatalogProvider for RestCatalogProvider {
                 tracing::debug!("REST config built successfully");
                 let catalog = iceberg_catalog_rest::RestCatalog::new(rest_config);
                 tracing::info!("REST catalog created successfully");
-                
+
                 Ok(Arc::new(catalog))
             }
-            _ => Err(RimeError::Config("Invalid catalog type for REST provider".to_string())),
+            _ => Err(RimeError::Config(
+                "Invalid catalog type for REST provider".to_string(),
+            )),
         }
     }
 

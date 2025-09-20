@@ -1,12 +1,12 @@
+pub mod analysis;
 pub mod catalog;
 pub mod config;
-pub mod analysis;
 pub mod monitor;
 
+pub use analysis::{AnalysisResult, TableAnalyser};
 pub use catalog::{CatalogProvider, CatalogType};
-pub use config::{Config, CatalogConfig};
-pub use analysis::{TableAnalyser, AnalysisResult};
-pub use monitor::{SnapshotMonitor, SnapshotEvent, SnapshotEventType};
+pub use config::{CatalogConfig, Config};
+pub use monitor::{SnapshotEvent, SnapshotEventType, SnapshotMonitor};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RimeError {

@@ -1,11 +1,11 @@
-use iceberg::{Catalog, TableIdent};
+use chrono::{DateTime, Utc};
 use iceberg::spec::Snapshot;
-use std::sync::Arc;
+use iceberg::{Catalog, TableIdent};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
-use chrono::{DateTime, Utc};
 use tracing::{debug, info, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,29 +50,44 @@ impl SnapshotMonitor {
     }
 
     pub async fn initialize(&mut self) -> anyhow::Result<()> {
-        info!("Initializing snapshot monitor for {} tables", self.tables.len());
+        info!(
+            "Initializing snapshot monitor for {} tables",
+            self.tables.len()
+        );
 
         for (namespace, table_name) in &self.tables.clone() {
             let table_ident = TableIdent::from_strs(
-                namespace.iter().chain(std::iter::once(table_name)).map(|s| s.as_str())
+                namespace
+                    .iter()
+                    .chain(std::iter::once(table_name))
+                    .map(|s| s.as_str()),
             )?;
 
             match self.catalog.load_table(&table_ident).await {
                 Ok(table) => {
                     let table_key = Self::table_key(namespace, table_name);
-                    let snapshots: HashMap<_, _> = table.metadata()
+                    let snapshots: HashMap<_, _> = table
+                        .metadata()
                         .snapshots()
                         .map(|s| (s.snapshot_id(), s.clone()))
                         .collect();
 
-                    info!("Initialized table {}.{} with {} snapshots",
-                          namespace.join("."), table_name, snapshots.len());
+                    info!(
+                        "Initialized table {}.{} with {} snapshots",
+                        namespace.join("."),
+                        table_name,
+                        snapshots.len()
+                    );
 
                     self.known_snapshots.insert(table_key, snapshots);
                 }
                 Err(e) => {
-                    warn!("Failed to initialize table {}.{}: {}",
-                          namespace.join("."), table_name, e);
+                    warn!(
+                        "Failed to initialize table {}.{}: {}",
+                        namespace.join("."),
+                        table_name,
+                        e
+                    );
                 }
             }
         }
@@ -85,18 +100,26 @@ impl SnapshotMonitor {
 
         for (namespace, table_name) in &self.tables.clone() {
             let table_ident = TableIdent::from_strs(
-                namespace.iter().chain(std::iter::once(table_name)).map(|s| s.as_str())
+                namespace
+                    .iter()
+                    .chain(std::iter::once(table_name))
+                    .map(|s| s.as_str()),
             )?;
 
             match self.catalog.load_table(&table_ident).await {
                 Ok(table) => {
-                    let current_snapshots: HashMap<_, _> = table.metadata()
+                    let current_snapshots: HashMap<_, _> = table
+                        .metadata()
                         .snapshots()
                         .map(|s| (s.snapshot_id(), s.clone()))
                         .collect();
 
                     let table_key = Self::table_key(namespace, table_name);
-                    let known = self.known_snapshots.get(&table_key).cloned().unwrap_or_default();
+                    let known = self
+                        .known_snapshots
+                        .get(&table_key)
+                        .cloned()
+                        .unwrap_or_default();
 
                     // Detect new snapshots
                     for (id, snapshot) in &current_snapshots {
@@ -130,8 +153,12 @@ impl SnapshotMonitor {
                     self.known_snapshots.insert(table_key, current_snapshots);
                 }
                 Err(e) => {
-                    warn!("Failed to poll table {}.{}: {}",
-                          namespace.join("."), table_name, e);
+                    warn!(
+                        "Failed to poll table {}.{}: {}",
+                        namespace.join("."),
+                        table_name,
+                        e
+                    );
                 }
             }
         }
@@ -142,7 +169,10 @@ impl SnapshotMonitor {
     pub async fn watch(&mut self) -> anyhow::Result<()> {
         self.initialize().await?;
 
-        info!("Starting snapshot monitoring with {}s interval", self.poll_interval.as_secs());
+        info!(
+            "Starting snapshot monitoring with {}s interval",
+            self.poll_interval.as_secs()
+        );
 
         loop {
             let events = self.poll_once().await?;
